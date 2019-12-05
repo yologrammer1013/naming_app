@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:english_words/english_words.dart';
 import 'package:naming_app/screens/selected_screen.dart';
+import 'package:naming_app/blocs/likedWordsBloc.dart';
 
 class ListScreen extends StatefulWidget {
   @override
@@ -12,7 +13,6 @@ class ListScreen extends StatefulWidget {
 
 class ListScreenState extends State<ListScreen> {
   final List<WordPair> _random_words = <WordPair>[];
-  final Set<WordPair> _liked_words = Set<WordPair>();
 
   @override
   Widget build(BuildContext context) {
@@ -26,13 +26,10 @@ class ListScreenState extends State<ListScreen> {
             IconButton(
               icon: Icon(Icons.list),
               onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) {
-                      return SelectedScreen(list: _liked_words);  // call by reference
-                    }
-                  )
-                );
+                Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (context) {
+                  return SelectedScreen();
+                }));
               },
             ),
           ],
@@ -41,34 +38,33 @@ class ListScreenState extends State<ListScreen> {
   }
 
   _buildList() {
-    return ListView.builder(itemBuilder: (context, index) {
-      if (index.isOdd) {
-        return Divider();
-      }
-      var realIndex = index ~/ 2;
+    return StreamBuilder<Set<WordPair>>(
+        stream: likedWordsBloc.likedWordsStream,
+        builder: (context, snapshot) {
+          return ListView.builder(itemBuilder: (context, index) {
+            if (index.isOdd) {
+              return Divider();
+            }
+            var realIndex = index ~/ 2;
 
-      if (realIndex >= _random_words.length) {
-        _random_words.addAll(generateWordPairs().take(10));
-      }
+            if (realIndex >= _random_words.length) {
+              _random_words.addAll(generateWordPairs().take(10));
+            }
 
-      return buildItem(_random_words[realIndex]);
-    });
+            return buildItem(snapshot.data, _random_words[realIndex]);
+          });
+        });
   }
 
-  Widget buildItem(WordPair pair) {
-    final bool isLiked = _liked_words.contains(pair);
+  Widget buildItem(Set<WordPair> liked_words, WordPair pair) {
+    final bool isLiked = liked_words == null ? false : liked_words.contains(pair);
 
     return ListTile(
       title: Text(pair.asPascalCase, textScaleFactor: 1.5),
-      trailing: Icon(isLiked ? Icons.favorite : Icons.favorite_border, color: Colors.pink),
+      trailing: Icon(isLiked ? Icons.favorite : Icons.favorite_border,
+          color: Colors.pink),
       onTap: () {
-        setState(() {
-          if (isLiked) {
-            _liked_words.remove(pair);
-          } else {
-            _liked_words.add(pair);
-          }
-        });
+        likedWordsBloc.addToOrRemoveList(pair);
       },
     );
   }
