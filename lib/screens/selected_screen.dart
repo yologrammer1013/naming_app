@@ -1,14 +1,11 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:english_words/english_words.dart';
-import 'package:naming_app/blocs/likedWordsBloc.dart';
+import 'package:provider/provider.dart';
+import 'package:naming_app/providers/likedWords.dart';
 
-class SelectedScreen extends StatefulWidget {
-
-  @override
-  _SelectedScreenState createState() => _SelectedScreenState();
-}
-
-class _SelectedScreenState extends State<SelectedScreen> {
+class SelectedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -20,36 +17,25 @@ class _SelectedScreenState extends State<SelectedScreen> {
   }
 
   Widget _buildList() {
-    return StreamBuilder<Set<WordPair>>(
-      stream: likedWordsBloc.likedWordsStream,
-      builder: (context, snapshot) {
-        var liked_words = Set<WordPair>();
-
-        if (snapshot.hasData) {
-          liked_words.addAll(snapshot.data);
-        } else {
-          likedWordsBloc.addCurrentLikedWords;
-        }
-
-        return ListView.builder(
-            itemCount: liked_words.length * 2,
-            itemBuilder: (context, index) {
-              if (index.isOdd) {
-                return Divider();
-              }
-              var realIndex = index ~/ 2;
-
-              return _buildItem(snapshot.data.toList()[realIndex]);
-            });
-      }
+    return Consumer<LikedWords>(
+      builder: (context, value, child) => ListView.builder(
+          itemCount: value.getLikedWords().length * 2,
+          itemBuilder: (context, index) {
+            if (index.isOdd) {
+              return Divider();
+            }
+            var realIndex = index ~/ 2;
+            var likedWords = Provider.of<LikedWords>(context).getLikedWords().toList();
+            return _buildItem(likedWords[realIndex], context);
+          }),
     );
   }
 
-  Widget _buildItem(WordPair pair) {
+  Widget _buildItem(WordPair pair, BuildContext context) {
     return ListTile(
       title: Text(pair.asPascalCase, textScaleFactor: 1.5),
       onTap: () {
-        likedWordsBloc.addToOrRemoveList(pair);
+        Provider.of<LikedWords>(context).addOrRemoveWord(pair);
       },
     );
   }
